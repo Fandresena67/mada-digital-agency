@@ -129,6 +129,9 @@ function Footer() {
             <p className="text-sm text-gray-500">
               Transformons vos idées en solutions digitales
             </p>
+            <NavLink to="/admin/login" className="text-sm text-gray-500 transition-colors hover:text-blue-400">
+              Administration
+            </NavLink>
           </div>
         </div>
       </div>

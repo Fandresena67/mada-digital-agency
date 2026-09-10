@@ -3,10 +3,11 @@
 Site vitrine d'une agence digitale fictive basée à Madagascar.
 Slogan : « Transformons vos idées en solutions digitales ».
 
-> Projet pédagogique (frontend uniquement, sans backend).
+> Projet pédagogique.
 > Les projets, témoignages et chiffres présentés sont des contenus
-> de démonstration. Les formulaires (contact, newsletter) fonctionnent
-> côté interface uniquement : aucune donnée n'est envoyée ni stockée.
+> de démonstration. Le formulaire de contact envoie réellement un email
+> via le backend (`backend/`). La newsletter reste une démonstration
+> d'interface : aucune donnée n'est envoyée ni stockée.
 
 ## Stack
 
@@ -49,6 +50,25 @@ Le dossier `dist/` généré est un site statique prêt à être hébergé.
 ```bash
 npm run preview
 ```
+
+## Backend (formulaire de contact)
+
+Le dossier `backend/` (Node.js + Express + Nodemailer) reçoit les
+demandes du formulaire `/contact` (`POST /api/contact`) et les envoie
+par email. Aucune base de données.
+
+```bash
+cd backend
+npm install
+cp .env.example .env
+# Renseigner EMAIL_USER et EMAIL_PASS (mot de passe d'application)
+# dans backend/.env — ce fichier n'est jamais commité.
+npm run dev
+```
+
+En production, définir `VITE_API_URL` avec l'URL publique du backend
+(exemple dans le dashboard Vercel) pour que le frontend l'utilise
+au lieu de `http://localhost:5000`.
 
 ## Structure principale
 

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { sendContactMessage } from '../lib/api'
 
-// Page Contact — formulaire 100 % frontend (démonstration d'interface).
-// IMPORTANT : aucun envoi réel (pas de fetch, pas d'API, pas de backend,
-// aucune donnée stockée). La soumission affiche un message de succès
-// puis réinitialise le formulaire.
+// Page Contact — formulaire connecté au backend (POST /api/contact).
+// La soumission envoie réellement le message par email via le backend,
+// affiche un message de succès ou d'erreur, puis réinitialise le formulaire.
+// Aucune donnée n'est stockée côté frontend.
 
 // ---------------------------------------------------------------------------
 // Données : options du select "Type de projet"
@@ -24,7 +25,7 @@ const initialForm = {
   name: '',
   email: '',
   subject: '',
-  projectType: 'Site web',
+  project_type: 'Site web',
   message: '',
 }
 
@@ -91,7 +92,7 @@ const faqItems = [
   {
     question: 'Est-ce que le formulaire envoie réellement mon message ?',
     answer:
-      'Dans cette version du site, le formulaire fonctionne comme démonstration côté interface. L’envoi réel sera connecté au backend ou à un service d’envoi ultérieurement.',
+      'Oui. Votre message est envoyé directement à notre adresse email et nous vous répondrons prochainement.'
   },
 ]
 
@@ -100,7 +101,10 @@ const inputClasses =
 
 function Contact() {
   const [form, setForm] = useState(initialForm)
-  const [successMessage, setSuccessMessage] = useState('')
+  // Message affiché après soumission (succès ou erreur), + état d'envoi.
+  const [statusMessage, setStatusMessage] = useState('')
+  const [statusType, setStatusType] = useState('success')
+  const [isSending, setIsSending] = useState(false)
   // Index des questions FAQ ouvertes (plusieurs peuvent être ouvertes).
   const [openFaq, setOpenFaq] = useState([])
 
@@ -109,13 +113,28 @@ function Contact() {
     setForm((previous) => ({ ...previous, [name]: value }))
   }
 
-  // Démonstration d'interface : pas d'envoi, pas de stockage.
-  const handleSubmit = (event) => {
+  // Envoi réel vers le backend (POST /api/contact) via src/lib/api.js.
+  // Aucune donnée n'est stockée côté frontend. Le formulaire n'est
+  // réinitialisé qu'en cas de succès : les valeurs sont conservées en erreur.
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    setSuccessMessage(
-      'Merci pour votre demande. Votre message a bien été préparé. Nous vous répondrons prochainement.'
-    )
-    setForm(initialForm)
+    // Protection contre les doubles soumissions.
+    if (isSending) return
+    setStatusMessage('')
+    setIsSending(true)
+    try {
+      const result = await sendContactMessage(form)
+      if (result.ok) {
+        setStatusType('success')
+        setStatusMessage(result.message)
+        setForm(initialForm)
+      } else {
+        setStatusType('error')
+        setStatusMessage(result.message)
+      }
+    } finally {
+      setIsSending(false)
+    }
   }
 
   const toggleFaq = (index) => {
@@ -224,9 +243,16 @@ function Contact() {
                   échanger sur votre projet.
                 </p>
 
-                {successMessage && (
-                  <p role="status" className="mb-6 rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm font-medium text-green-800 sm:text-base">
-                    {successMessage}
+                {statusMessage && (
+                  <p
+                    role="status"
+                    className={`mb-6 rounded-xl border px-5 py-4 text-sm font-medium sm:text-base ${
+                      statusType === 'success'
+                        ? 'border-green-200 bg-green-50 text-green-800'
+                        : 'border-red-200 bg-red-50 text-red-800'
+                    }`}
+                  >
+                    {statusMessage}
                   </p>
                 )}
 
@@ -287,8 +313,8 @@ function Contact() {
                     </label>
                     <select
                       id="contact-type"
-                      name="projectType"
-                      value={form.projectType}
+                      name="project_type"
+                      value={form.project_type}
                       onChange={handleChange}
                       className={`${inputClasses} cursor-pointer`}
                     >
@@ -319,15 +345,18 @@ function Contact() {
 
                 <button
                   type="submit"
-                  className="mt-7 inline-flex min-h-[3.5rem] w-full items-center justify-center rounded-xl bg-blue-600 px-8 text-lg font-semibold text-white shadow-lg transition-all duration-300 hover:bg-blue-700 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:w-auto"
+                  disabled={isSending}
+                  className="mt-7 inline-flex min-h-[3.5rem] w-full items-center justify-center rounded-xl bg-blue-600 px-8 text-lg font-semibold text-white shadow-lg transition-all duration-300 hover:bg-blue-700 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
                 >
-                  Envoyer ma demande
-                  <svg className="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
+                  {isSending ? 'Envoi en cours…' : 'Envoyer ma demande'}
+                  {!isSending && (
+                    <svg className="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  )}
                 </button>
                 <p className="mt-4 text-xs text-gray-400">
-                  Démonstration d’interface — aucun message n’est réellement envoyé pour le moment.
+                  Vos informations sont utilisées uniquement pour traiter votre demande.
                 </p>
               </form>
             </div>
